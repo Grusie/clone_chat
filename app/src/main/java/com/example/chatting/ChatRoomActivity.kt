@@ -3,14 +3,17 @@ package com.example.chatting
 
 import android.annotation.SuppressLint
 import android.content.DialogInterface
+import android.content.Intent
 import android.graphics.Color
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.os.Environment
 import android.text.Editable
 import android.text.TextWatcher
 import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
+import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -24,6 +27,10 @@ import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.ktx.database
 import com.google.firebase.database.ktx.getValue
 import com.google.firebase.ktx.Firebase
+import java.io.BufferedReader
+import java.io.File
+import java.io.OutputStream
+import java.io.OutputStreamWriter
 import java.lang.Exception
 import java.text.SimpleDateFormat
 import kotlin.math.log
@@ -135,7 +142,6 @@ class ChatRoomActivity : AppCompatActivity() {
                     .get()
                     .addOnSuccessListener {
                         val userList = mutableListOf<String>()
-
                         for (user in it.children){
                             //본인이 아닌 다른 사람의 In Out 여부를 확인 후 read = true/false 결정
                                 // -> 본인과의 대화이면 if 문에 해당 X
@@ -148,6 +154,13 @@ class ChatRoomActivity : AppCompatActivity() {
                                             messageRef.child("$chatRoomId").child(key!!).setValue(msg)
                                         } else {
                                             messageRef.child("$chatRoomId").child(key!!).setValue(messageData)
+                                            val intent = Intent(this, MessagingControl::class.java)
+                                            val token = getToken("${user.value}")
+                                            /*intent.putExtra("token", token)
+                                            intent.putExtra("chatRoomId", chatRoomId)
+                                            intent.putExtra("LastMessage", msg)
+                                            intent.putExtra("sender", MyApplication.auth.currentUser?.email)
+                                            startActivity(intent)*/
                                         }
 
                                         userRoomRef.child("$chatRoomId").setValue(userRoom)
@@ -170,6 +183,15 @@ class ChatRoomActivity : AppCompatActivity() {
                     }
             }
         }
+    }
+
+    private fun getToken(user: String): String{
+        var token : String = ""/*
+        MyApplication.db.collection("profile").document("$user").get()
+            .addOnSuccessListener {
+                    fields -> for (field in fields) token = field["token"]
+            }*/
+        return token
     }
 
     private fun loadChatData() {

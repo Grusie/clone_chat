@@ -1,5 +1,6 @@
 package com.example.chatting
 
+import android.R
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -8,6 +9,8 @@ import android.os.Build
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.example.chatting.Model.ServerMsg
+import com.google.firebase.messaging.FirebaseMessaging
+
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 
@@ -92,10 +95,13 @@ class FirebaseMessageService : FirebaseMessagingService() {
         }
 
         builder.apply {
-            setSmallIcon(android.R.drawable.ic_notification_overlay)  //스몰 아이콘
+            /*val vibrate = longArrayOf(0, 100, 200, 300)
+            setVibrate(vibrate)*/
+            setSmallIcon(R.drawable.ic_notification_overlay)  //스몰 아이콘
             setContentTitle(message.name)
             setContentText(message.text)
             setWhen(message.timestamp)
+            setAutoCancel(true)
 
             val newMessageCount = 3
             setNumber(newMessageCount)
