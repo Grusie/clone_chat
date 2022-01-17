@@ -2,6 +2,7 @@ package com.example.chatting.ChatFragment
 
 import android.annotation.SuppressLint
 import android.os.Bundle
+import android.preference.PreferenceManager
 import android.util.Log
 import android.view.*
 import android.widget.Toast
@@ -164,26 +165,8 @@ class ChatFragment : Fragment() {
     }
 
     fun getChatRoomList(chatroomid: String, chatroomuser: String) {
-        Log.d("count","count")
         val chatRoomListener = object : ChildEventListener{
             override fun onChildAdded(snapshot: DataSnapshot, previousChildName: String?) {
-                if(snapshot.key == chatroomid) {
-                    var lastmessage = ""
-                    var sender = chatroomuser       //이름 및 이미지는 어댑터에서 sender로 처리하기 위해 상대방 이메일 지정해줌
-                    var timestamp: Long = 0
-                    val userRoomData = snapshot.getValue<UserRoom>()!!
-                    Log.d("snapshot", "${userRoomData}")
-                    lastmessage = userRoomData.lastmessage
-                    timestamp = userRoomData.timestamp
-
-                    //chatListDatas.add(UserRoom(chatroomid, lastmessage, timestamp, sender))
-                    Log.d("snapshot", "chatListDatas${chatListDatas}")
-                    chatListDatas.sortByDescending { it.timestamp }     //시간 순으로 정렬
-                    adapter.notifyDataSetChanged()
-                }
-            }
-
-            override fun onChildChanged(snapshot: DataSnapshot, previousChildName: String?) {
                 if(snapshot.key == chatroomid) {
                     var lastmessage = ""
                     var sender = chatroomuser       //이름 및 이미지는 어댑터에서 sender로 처리하기 위해 상대방 이메일 지정해줌
@@ -198,6 +181,9 @@ class ChatFragment : Fragment() {
                     chatListDatas.sortByDescending { it.timestamp }     //시간 순으로 정렬
                     adapter.notifyDataSetChanged()
                 }
+            }
+
+            override fun onChildChanged(snapshot: DataSnapshot, previousChildName: String?) {
             }
 
             override fun onChildRemoved(snapshot: DataSnapshot) {
@@ -213,32 +199,5 @@ class ChatFragment : Fragment() {
             }
         }
         MyApplication.realtime.child("UserRoom").addChildEventListener(chatRoomListener)
-        /*
-        MyApplication.realtime.child("UserRoom").child(chatroomid)
-            .addValueEventListener(object : ValueEventListener {
-                @SuppressLint("NotifyDataSetChanged")
-                override fun onDataChange(snapshot: DataSnapshot) {
-                    var lastmessage = ""
-                    var sender = chatroomuser       //이름 및 이미지는 어댑터에서 sender로 처리하기 위해 상대방 이메일 지정해줌
-                    var timestamp: Long = 0
-
-                    for (data in snapshot.children) {
-                        //Log.d("grusie", "${data.value}")
-                        Log.d("grusie", "${data}")
-                        when (data.key) {
-                            "lastmessage" -> lastmessage = data.value as String
-                            "timestamp" -> timestamp = data.value as Long
-                        }
-                    }
-
-                    chatListDatas.add(UserRoom(chatroomid, lastmessage, timestamp, sender))
-                    chatListDatas.sortByDescending { it.timestamp }     //시간 순으로 정렬
-                    adapter.notifyDataSetChanged()
-                }
-
-                override fun onCancelled(error: DatabaseError) {
-                    Log.d("error", "failed")
-                }
-            })*/
     }
 }

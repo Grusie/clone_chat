@@ -1,7 +1,6 @@
 package com.example.chatting.ProfileDetail
 
 import android.Manifest
-import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
@@ -24,9 +23,6 @@ import com.example.chatting.R
 import com.example.chatting.databinding.ActivityMyProfileDetailBinding
 import com.example.chatting.util.URIPathHelper
 import com.example.chatting.util.myCheckPermission
-import com.google.firebase.database.DataSnapshot
-import com.google.firebase.database.DatabaseError
-import com.google.firebase.database.ValueEventListener
 import com.google.firebase.database.ktx.database
 import com.google.firebase.ktx.Firebase
 import java.io.File
@@ -36,10 +32,11 @@ class MyProfileDetailActivity : AppCompatActivity() {
 
     private lateinit var userData: UserData
     private lateinit var filename: String
-    val chatRoomRef = Firebase.database.getReference("chatRoomUser")
-    var chatRoomId: String? = null
-    var user1: String? = null
-    var user2: String? = null
+    private val chatRoomRef = Firebase.database.getReference("chatRoomUser")
+    private val userStatusRef = Firebase.database.getReference("UserStatus")
+    private var chatRoomId: String? = null
+    private var user1: String? = null
+    private var user2: String? = null
     private lateinit var galleryIntent: ActivityResultLauncher<Intent>
     private var profileImgFilePath: String? = null
     private var backgroundImgFilePath: String? = null
@@ -50,7 +47,7 @@ class MyProfileDetailActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(binding.root)
         //리사이클러 뷰 항목 클릭시 넘어온 userData 정보를 화면 뷰에 구성
-        userData = intent.getParcelableExtra<UserData>("userData")!!
+        userData = intent.getParcelableExtra("userData")!!
         Log.d("test", userData.toString())
         editState(checkProfileUser())
         binding()
@@ -341,7 +338,7 @@ class MyProfileDetailActivity : AppCompatActivity() {
 
             imgRef
                 .putFile(file)
-                .addOnSuccessListener { taskSnapShot ->
+                .addOnSuccessListener {
                     Toast.makeText(this, "사진이 저장되었습니다.", Toast.LENGTH_SHORT).show()
 
                     setImages()
@@ -351,51 +348,66 @@ class MyProfileDetailActivity : AppCompatActivity() {
                 }
         }
 
-        private fun openChatRoom(context: Context) {
-            val intent = Intent(context, ChatRoomActivity::class.java)
-            intent.putExtra("userName", binding.myProfileName.text.toString())
-            intent.putExtra("userEmail", userData.email)
-            intent.putExtra("chatRoomId", chatRoomId)
-            startActivity(intent)
-        }
-
         private fun createChatRoom() {
-            val valueListener = object : ValueEventListener {
-                override fun onDataChange(snapshot: DataSnapshot) {
-                    for (chatRoomInfo in snapshot.children) {
-                        chatRoomId = null
-                        user1 = null
-                        user2 = null
-                        for (chatRoomUserData in chatRoomInfo.children) {
-                            if (user1 == null && chatRoomUserData.value == MyApplication.auth.currentUser?.email) {
-                                user1 = chatRoomUserData.value as String
-                            } else if (chatRoomUserData.value == userData.email) {
-                                user2 = chatRoomUserData.value as String
-                            }
-                        }
-                        if (user1 != null && user2 != null) {
-                            chatRoomId = chatRoomInfo.key
-                            break
+            chatRoomRef.get().addOnSuccessListener {
+                for (chatRoomInfo in it.children){
+                    chatRoomId = null
+                    user1 = null
+                    user2 = null
+                    for (chatRoomUserData in chatRoomInfo.children) {
+                        if (user1 == null && chatRoomUserData.value == MyApplication.auth.currentUser?.email) {
+                            user1 = chatRoomUserData.value as String
+                        } else if (chatRoomUserData.value == userData.email) {
+                            user2 = chatRoomUserData.value as String
                         }
                     }
-                    if (chatRoomId == null) {
-                        createChatRoomUser()
+                    if (user1 != null && user2 != null) {
+                        chatRoomId = chatRoomInfo.key
+                        break
                     }
-                    else openChatRoom(this@MyProfileDetailActivity)
+
                 }
 
-                override fun onCancelled(error: DatabaseError) {
-                    Log.d("grusie", "failed")
+                if (chatRoomId == null) {
+                    createChatRoomData()
+                } else {
+                    openChatRoom()
                 }
             }
-            chatRoomRef.addValueEventListener(valueListener)
         }
 
-        private fun createChatRoomUser() {
-            val chatRoomUserdata = chatRoomUser(
-                user1 = MyApplication.auth.currentUser?.email!!,
-                user2 = userData.email
-            )
-            chatRoomRef.child("").push().setValue(chatRoomUserdata)
-        }
+    private fun createChatRoomData() {
+        //랜덤 key 발급
+        val key = chatRoomRef.push().key!!
+
+        //chatRoomUser 생성
+        val chatRoomUserdata = chatRoomUser(
+            user1 = MyApplication.auth.currentUser?.email!!,
+            user2 = userData.email
+        )
+        chatRoomRef.child(key).setValue(chatRoomUserdata)
+
+        //UserStatus 생성
+        val userStatusData = chatRoomUser(
+            user1 = "In",
+            user2 = "N"
+        )
+        userStatusRef.child(key).setValue(userStatusData)
+
+        Toast.makeText(applicationContext, "채팅방 생성 완료", Toast.LENGTH_SHORT).show()
+
+        val intent = Intent(this@MyProfileDetailActivity, ChatRoomActivity::class.java)
+        intent.putExtra("userName", binding.myProfileName.text.toString())
+        intent.putExtra("userEmail", userData.email)
+        intent.putExtra("chatRoomId", key)
+        startActivity(intent)
     }
+
+    private fun openChatRoom() {
+        val intent = Intent(this@MyProfileDetailActivity, ChatRoomActivity::class.java)
+        intent.putExtra("userName", binding.myProfileName.text.toString())
+        intent.putExtra("userEmail", userData.email)
+        intent.putExtra("chatRoomId", chatRoomId)
+        startActivity(intent)
+    }
+}
